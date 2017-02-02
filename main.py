@@ -25,8 +25,8 @@ def main():
         img = frame
         norm_factor = 255.0/np.sum(frame,axis=2)[:,:,np.newaxis]
 
-        #frame = frame*norm_factor
-        #frame = cv2.convertScaleAbs(frame)
+        frame = frame*norm_factor
+        frame = cv2.convertScaleAbs(frame)
         frame = cv2.blur(frame,(5,5))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         x,y,sq_size,distrib,distrib_control = pf.next_state(frame)
