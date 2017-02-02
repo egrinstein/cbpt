@@ -16,13 +16,18 @@ def main():
     print("MAIN:",frame.shape)
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     x,y = 240,320
-    pf = ParticleFilter(x,y,frame,n_particles=1500,square_size=90,
+    pf = ParticleFilter(x,y,frame,n_particles=500,square_size=50,
     						dt=0.20)
     alpha = 0.5
     while(True):        
         ret, frame = cap.read()
         orig = np.array(frame)
         img = frame
+        norm_factor = 255.0/np.sum(frame,axis=2)[:,:,np.newaxis]
+
+        #frame = frame*norm_factor
+        #frame = cv2.convertScaleAbs(frame)
+        frame = cv2.blur(frame,(5,5))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         x,y,sq_size,distrib,distrib_control = pf.next_state(frame)
         p1 = (int(y-sq_size),int(x-sq_size))

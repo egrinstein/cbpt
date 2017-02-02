@@ -18,9 +18,10 @@ def get_view(image,x,y,sq_size):
 def calc_hist(image):
     
 
-    mask = cv2.inRange(image, np.array((0., 60.,80.)), np.array((180.,255.,255.)))
-    hist = cv2.calcHist(image,[0,1],None,[10,10],[0,180,0,255])
-    cv2.normalize(hist,hist,norm_type=cv2.NORM_MINMAX)
+    mask = cv2.inRange(image, np.array((0., 60.,32.)), np.array((180.,255.,255.)))
+    hist = cv2.calcHist([image],[0],mask,[180],[0,180])
+    #hist = cv2.calcHist(image,[0,1],None,[10,10],[0,180,0,255])
+    cv2.normalize(hist,hist,0,1,norm_type=cv2.NORM_MINMAX)
     return hist
 
 def comp_hist(hist1,hist2):
@@ -52,6 +53,7 @@ class ParticleFilter(object):
                            [0,-dt,0],
                            [0,0,-dt/4]])
 
+
         self.particles = init_particles(self.state,n_particles)
         self.last_particles = np.array(self.particles)                                
                                         
@@ -59,15 +61,6 @@ class ParticleFilter(object):
         
      
     def next_state(self,frame):       
-        """ AR Model for the "prediction" step AKA Control update 
-         Predicts x(t) ~ p(x(t)| u(t),x(t-1))
-         Where u(t) represents the control of the system/the dynamics
-        
-         This simplified model uses a recursion of order 1 and fixes the 
-         window size. Its transition is expressed in the variable "transition_matrix"
-        """
-        
-        
       
         control_prediction = self.transition()
         control_prediction = self.filter_borders(control_prediction)
