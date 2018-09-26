@@ -8,24 +8,35 @@ def init_particles(state,n):
     
 
 def get_view(image,x,y,sq_size):
+    """
+    Get a smaller image, centered at (x,y) with size (sq_size x sq_size)
+    """
     
     # with numpy arrays this is an O(1) operation
-
     view = image[int(x-sq_size/2):int(x+sq_size/2),
                  int(y-sq_size/2):int(y+sq_size/2),:]
     return view
     
 def calc_hist(image):
+    """
+    Computes the color histogram of an image (or from a region of an image).
     
+    image: 3D Numpy array (X,Y,RGB)
 
+    return: One dimensional Numpy array
+    """
     mask = cv2.inRange(image, np.array((0., 60.,32.)), np.array((180.,255.,255.)))
     hist = cv2.calcHist([image],[0],mask,[180],[0,180])
-    #hist = cv2.calcHist(image,[0,1],None,[10,10],[0,180,0,255])
     cv2.normalize(hist,hist,0,1,norm_type=cv2.NORM_MINMAX)
     return hist
 
 def comp_hist(hist1,hist2):
+    """
+    Compares two histograms together using the article's metric
 
+    hist1,hist2: One dimensional numpy arrays
+    return: A number
+    """
     lbd = 20
     return np.exp(lbd*np.sum(hist1*hist2))
     
@@ -91,7 +102,7 @@ class ParticleFilter(object):
         return particles
 
     def candidate_histograms(self,predictions,image):
-        
+        "Compute histograms for all candidates"
         hists = [] 
 
         for x in predictions:
@@ -100,16 +111,17 @@ class ParticleFilter(object):
         return hists
         
     def compare_histograms(self,hists,last_hist):
-        
+        "Compare histogram of current (last) histogram and all candidates"
         weights = np.array(list(map(lambda x: comp_hist(x,last_hist),hists)))
         return weights/np.sum(weights)
 
     def resample(self,predictions,weights):
+        "Scatter new particles according to the weights of the predictions"
         indexes = np.arange(weights.shape[0])
         inds = np.random.choice(indexes,self.n_particles,p=weights)
         return predictions[inds]
     def filter_borders(self,predictions):  
-        ""
+        "Remove candidates that will not have the correct square size."
         np.clip(predictions[:,0],self.state[2]+1,self.window_size[0]-(1+self.state[2]),predictions[:,0])        
         np.clip(predictions[:,1],self.state[2]+1,self.window_size[1]-(1+self.state[2]),predictions[:,1])
         np.clip(predictions[:,2],self.min_square,self.max_square,predictions[:,2])
