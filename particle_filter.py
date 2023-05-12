@@ -14,9 +14,12 @@ class ParticleFilter:
         square_size=20,
     ):
         self.n_particles = n_particles
-        self.n_iter = 0
+
         self.state = np.array([x_0, y_0, square_size])
-        # state =[X[t],Y[t],S[t],X[t-1],Y[t-1],S[t-1]]
+        # state =[
+        #   X[t],Y[t],S[t],
+        #   X[t-1],Y[t-1],S[t-1]
+        # ]
         self.std_state = np.array([15, 15, 1])
 
         self.window_size = window_size
@@ -34,18 +37,24 @@ class ParticleFilter:
         self.hist = _calc_hist(_get_view(first_frame, x_0, y_0, square_size))
 
     def next_state(self, frame):
+
+        # 1. Predict the next state of the particles
         control_prediction = self.transition()
         control_prediction = self.filter_borders(control_prediction)
-
+        
+        # 2. Compute the histograms around the particles
         hists = self.candidate_histograms(control_prediction, frame)
 
+        # 3. Compute the weights of the particles
+        #    based on the histogram comparison
         weights = self.compare_histograms(hists, self.hist)
+
+        # 4. Resample the particles
         self.last_particles = np.array(self.particles)
         self.particles = self.resample(control_prediction, weights)
+        
+        # 5. Compute the new state
         self.state = np.mean(self.particles, axis=0)
-
-        self.last_frame = np.array(frame)
-        self.n_iter += 1
         self.hist = _calc_hist(
             _get_view(frame, self.state[0], self.state[1], self.state[2])
         )
@@ -59,6 +68,13 @@ class ParticleFilter:
         )
 
     def transition(self):
+        """Predict the next state of the particles
+        using the transition model and some noise.
+
+        the model is:
+        X[t] = A*X[t-1] + B*X[t-2] + noise
+        
+        return: A numpy array of shape (n_particles,3)"""
         n_state = self.state.shape[0]
         n_particles = self.particles.shape[0]
         noises = self.std_state * np.random.randn(n_particles, n_state)
@@ -71,16 +87,22 @@ class ParticleFilter:
 
     def candidate_histograms(self, predictions, image):
         "Compute histograms for all candidates"
-        hists = []
+        hists = np.array([
+            _calc_hist(
+                _get_view(image, x[0], x[1], x[2]))
+                for x in predictions
+        ])
 
-        for x in predictions:
-            v = _get_view(image, x[0], x[1], x[2])
-            hists.append(_calc_hist(v))
         return hists
 
-    def compare_histograms(self, hists, last_hist):
-        "Compare histogram of current (last) histogram and all candidates"
-        weights = np.array(list(map(lambda x: _comp_hist(x, last_hist), hists)))
+    def compare_histograms(self, hists, reference_hist):
+        "Compare the histogram of the current reference histogram with those of all candidate hists"
+
+        weights = np.array([
+            _comp_hist(x, reference_hist)
+            for x in hists
+        ])
+
         return weights / np.sum(weights)
 
     def resample(self, predictions, weights):

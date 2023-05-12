@@ -26,7 +26,7 @@ def main():
         ret, frame = cap.read()
         orig = np.array(frame)
         img = frame
-        norm_factor = 255.0 / np.sum(frame, axis=2)[:, :, np.newaxis]
+        norm_factor = 255.0 / (np.sum(frame, axis=2)[:, :, np.newaxis] + 1e-6)
 
         frame = frame * norm_factor
         frame = cv2.convertScaleAbs(frame)
